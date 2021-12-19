@@ -14,7 +14,7 @@ ui <- fluidPage(
       sidebarLayout(
         ##### Select bus stop panel -------------------------------------------
         sidebarPanel(
-          width = 3,
+          width = 2,
           selectizeInput(
             inputId = "selected_stops",
             label = "Select bus stops",
@@ -41,6 +41,7 @@ ui <- fluidPage(
         ),
         #### Main panel showing app outputs -----------------------------------
         mainPanel(
+          width = 10,
           uiOutput("departures_ui"),
           p("Data: Transport for Edinburgh")
         )
@@ -48,7 +49,30 @@ ui <- fluidPage(
     ),
     ### Live locations (map) panel --------------------------------------------
     tabPanel(
-      "Locations"
+      "Locations",
+      sidebarLayout(
+        sidebarPanel(
+          width = 4,
+          pickerInput(
+            inputId = "selected_map_routes",
+            label = "Select routes to display",
+            choices = routes$route_display,
+            selected = routes$route_display,
+            multiple = TRUE,
+            options = list(`actions-box` = TRUE)
+          ),
+          actionButton(
+            inputId = "refresh_map",
+            label = "Refresh"
+          )
+        ),
+        mainPanel(
+          width = 8,
+          leafletOutput("bus_locations",
+                        width = "100%",
+                        height = 600)
+        )
+      )
     )
   ),
 )

@@ -83,3 +83,8 @@ stop_identifiers <- all_stops %>%
 ### Save ----------------------------------------------------------------------
 if (save) write_rds(stop_identifiers, "stop_identifiers.rds")
 
+## List of routes for map filtering -------------------------------------------
+routes <- list_routes() %>%
+  mutate(route_display = paste(name, description))
+
+if (save) write_rds(routes, "routes.rds")
