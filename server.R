@@ -88,8 +88,7 @@ server <- function(input, output) {
     live_locations() %>%
       filter(service_name %in% selected_routes) %>%
       left_join(display_identifiers, by = c("next_stop_id" = "stop_id")) %>%
-      filter(last_gps_fix_secs < 60,
-             !is.na(service_name)) %>%
+      filter(!is.na(service_name)) %>%
       mutate(label = paste0("Service <b>", service_name, "</b> to <b>",
                             destination, "</b><br> Next stop: ", name,
                             "<br> Recorded ", last_gps_fix_secs,
