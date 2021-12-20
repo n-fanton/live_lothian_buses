@@ -4,12 +4,6 @@ save <- TRUE
 
 ## Download all stops from TfE API --------------------------------------------
 all_stops <- lothianBuses::get_stops() %>%
-  mutate(stop_id = case_when(
-           stop_id == 36290146 ~ "36290145",
-           TRUE ~ as.character(stop_id)))
-
-## Grouped stops to search for in the app -------------------------------------
-grouped_stops <- all_stops %>%
   mutate(
     ### Rename tram stops -----------------------------------------------------
     # Stops are renamed to normal names, and often to correspond to and group
@@ -46,9 +40,17 @@ grouped_stops <- all_stops %>%
       stop_id == "36290144" ~ "St Andrew Square",
       stop_id == "36290146" ~ "York Place",
       TRUE ~ name),
+    stop_id = case_when(
+      stop_id == 36290146 ~ "36290145",
+      TRUE ~ as.character(stop_id)))
+
+## Grouped stops to search for in the app -------------------------------------
+grouped_stops <- all_stops %>%
+  mutate(
     ### Use station direction as identifier if there is none ------------------
-    identifier = case_when(is.na(identifier) ~ direction,
-                           TRUE ~ identifier)) %>%
+    identifier = case_when(
+      is.na(identifier) ~ direction,
+      TRUE ~ identifier)) %>%
   bind_rows(
     ### Add additional names for West End / Shandwick Place tram --------------
     all_stops %>%
