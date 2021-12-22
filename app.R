@@ -12,7 +12,9 @@ library("leaflet")
 grouped_stops <- read_rds("grouped_stops.rds")
 stop_identifiers <- read_rds("stop_identifiers.rds")
 routes <- read_rds("routes.rds")
-route_shapefile <- read_rds("route_shapefiles.rds")
+colours <- read_rds("route_colours.rds")
+route_shapefile <- read_rds("route_shapefiles.rds") %>%
+  left_join(colours)
 stop_services <- read_rds("stop_services.rds")
 
 # Remove Shandwick Place from display for trams

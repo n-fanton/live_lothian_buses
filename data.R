@@ -91,6 +91,49 @@ routes <- list_routes() %>%
 
 if (save) write_rds(routes, "routes.rds")
 
+
+## Bind stops to services -----------------------------------------------------
+stops <- httr::GET(url = "https://tfe-opendata.com/api/v1/stops") %>%
+  httr::content(as = "text", encoding = "UTF-8") %>%
+  jsonlite::fromJSON(flatten = TRUE) %>%
+  magrittr::extract2(2) %>%
+  tibble::as_tibble() %>%
+  janitor::clean_names() %>%
+  unnest(services) %>%
+  select(stop_id, name, services)
+
+if(save) write_rds(stops, "stop_services.rds")
+
+## Get route colours ----------------------------------------------------------
+
+if (FALSE) {
+  get_route_colour <- function(route) {
+
+    route <- as.character(route)
+    message(route)
+
+    route_api <- paste0("https://lothianapi.com/routePatterns?route_name=", route)
+
+    colour <- httr::GET(url = route_api) %>%
+      httr::content(as = "text", encoding = "UTF-8") %>%
+      jsonlite::fromJSON(flatten = TRUE) %>%
+      magrittr::use_series(route) %>%
+      magrittr::use_series(color)
+
+    if(!is.null(colour)) return(colour)
+  }
+
+  colours <- routes %>%
+    filter(!(name %in% c("281"))) %>%
+    select(name) %>%
+    rowwise() %>%
+    mutate(colour = get_route_colour(name)) %>%
+    ungroup() %>%
+    mutate(colour = stringr::str_to_upper(colour))
+
+  write_rds(colours, "route_colours.rds")
+}
+
 ## Route shapefiles -----------------------------------------------------------
 routes <- httr::GET(url = "https://tfe-opendata.com/api/v1/services") %>%
   httr::content(as = "text", encoding = "UTF-8") %>%
@@ -118,19 +161,9 @@ for (i in 1:nrow(routes)) {
 }
 
 
-all_route_shapefiles <- full_join(routes, shapes, by = c("name" = "route_name"))
+all_route_shapefiles <- full_join(routes, shapes,
+                                  by = c("name" = "route_name")) %>%
+  left_join(colours)
 
 if(save) write_rds(all_route_shapefiles, "route_shapefiles.rds")
-
-## Bind stops to services -----------------------------------------------------
-stops <- httr::GET(url = "https://tfe-opendata.com/api/v1/stops") %>%
-  httr::content(as = "text", encoding = "UTF-8") %>%
-  jsonlite::fromJSON(flatten = TRUE) %>%
-  magrittr::extract2(2) %>%
-  tibble::as_tibble() %>%
-  janitor::clean_names() %>%
-  unnest(services) %>%
-  select(stop_id, name, services)
-
-if(save) write_rds(stops, "stop_services.rds")
 

@@ -29,7 +29,7 @@ to_minutes <- function(hh_mm) {
 }
 
 ## Create routes map ----------------------------------------------------------
-create_map <- function(services, shapefile = route_shapefle) {
+create_map <- function(services, shapefile = route_shapefile) {
 
   services <- as.character(services)
 
@@ -39,11 +39,25 @@ create_map <- function(services, shapefile = route_shapefle) {
   map <- leaflet() %>%
     addTiles()
 
+
   for (i in 1:nrow(data_to_map)) {
+
+    route_colour <- data_to_map[i, ] %>%
+      select(colour) %>%
+      pull()
+
+    route_label <- data_to_map[i, ] %>%
+      mutate(label = paste0("Route ", name, ": ", description)) %>%
+      select(label) %>%
+      pull()
+
     map <- map %>%
       addPolylines(data = data_to_map,
                    lat = ~points[[i]]$latitude,
-                   lng = ~points[[i]]$longitude)
+                   lng = ~points[[i]]$longitude,
+                   color = route_colour,
+                   opacity = 1,
+                   label = route_label)
   }
 
   map

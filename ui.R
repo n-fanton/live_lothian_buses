@@ -4,24 +4,11 @@ source("app.R")
 
 header <- dashboardHeader(
   title = "Edinburgh bus times",
-  titleWidth = "30%"
+  titleWidth = "25%"
 )
 
 body <- dashboardBody(
   fluidRow(
-    column(width = 9,
-           h2("Live departures"),
-           box(
-             status = "success",
-             width = NULL,
-             uiOutput("departures_ui")
-           ),
-           h2("Available services"),
-           box(
-             status = "success",
-             width = NULL,
-             leafletOutput("services_map")
-           )),
     column(width = 3,
            box(
              width = NULL,
@@ -36,7 +23,12 @@ body <- dashboardBody(
                inputId = "show_terminators",
                label = "Show services that terminate here",
                value = FALSE
-               )),
+               ),
+             checkboxInput(
+               inputId = "show_nightbus",
+               label = "Show night services on map",
+               value = FALSE
+             )),
            box(
              width = NULL,
              status = "warning",
@@ -51,6 +43,19 @@ body <- dashboardBody(
              width = NULL,
              status = "danger",
              p("This box will contain warnings downloaded from Lothian.")
+           )),
+    column(width = 9,
+           h2("Live departures"),
+           box(
+             status = "success",
+             width = NULL,
+             uiOutput("departures_ui")
+           ),
+           h2("Available services"),
+           box(
+             status = "success",
+             width = NULL,
+             leafletOutput("services_map")
            )))
 )
 

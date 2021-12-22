@@ -77,8 +77,14 @@ server <- function(input, output) {
 
   ## Create live map ----------------------------------------------------------
   output$services_map <- renderLeaflet({
+
     selected_services <- stop_services %>%
       filter(name %in% input$selected_stops) %>%
+      {if (input$show_nightbus) {
+        .
+      } else {
+        filter(., stringr::str_sub(services, 1, 1) != "N")
+      }} %>%
       select(services) %>%
       pull()
 
@@ -87,3 +93,4 @@ server <- function(input, output) {
 
   })
 }
+
