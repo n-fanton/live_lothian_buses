@@ -88,8 +88,32 @@ server <- function(input, output) {
       select(services) %>%
       pull()
 
-    create_map(services = selected_services,
+    stop_maps <- stop_services %>%
+      filter(services %in% selected_services) %>%
+      group_by(stop_id, name, identifier, latitude, longitude) %>%
+      summarise(services = paste(services, collapse = ', ')) %>%
+      mutate(
+        stop_name = case_when(is.na(identifier) ~ paste0("<b>", name,"</b>"),
+                              TRUE ~ paste0("<b>", name,"</b> ", identifier)),
+        label = paste0(stop_name, "<br>", services))
+
+
+    map <- create_map(services = selected_services,
                shapefile = route_shapefile)
+
+    if (input$show_stops) {
+      map <- map %>%
+        addAwesomeMarkers(
+          icon = icons,
+          data = stop_maps,
+          lat = ~latitude,
+          lng = ~longitude,
+          label = ~lapply(label, htmltools::HTML),
+          clusterOptions = markerClusterOptions(
+            maxClusterRadius = 33))
+    }
+
+    map
 
   })
 }

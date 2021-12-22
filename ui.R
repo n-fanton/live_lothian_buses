@@ -28,6 +28,11 @@ body <- dashboardBody(
                inputId = "show_nightbus",
                label = "Show night services on map",
                value = FALSE
+             ),
+             checkboxInput(
+               inputId = "show_stops",
+               label = "Show bus stops on map",
+               value = TRUE
              )),
            box(
              width = NULL,
@@ -52,10 +57,12 @@ body <- dashboardBody(
              uiOutput("departures_ui")
            ),
            h2("Available services"),
+           p("Tram services are currently not displayed on the map."),
            box(
              status = "success",
              width = NULL,
-             leafletOutput("services_map")
+             leafletOutput("services_map",
+                           height = "800px")
            )))
 )
 

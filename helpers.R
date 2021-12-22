@@ -37,7 +37,7 @@ create_map <- function(services, shapefile = route_shapefile) {
     filter(name %in% services)
 
   map <- leaflet() %>%
-    addTiles()
+    addProviderTiles("Esri.WorldTopoMap")
 
 
   for (i in 1:nrow(data_to_map)) {

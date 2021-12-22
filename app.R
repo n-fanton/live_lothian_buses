@@ -26,4 +26,10 @@ display_identifiers <- stop_identifiers %>%
 # Intro: helper functions -----------------------------------------------------
 source("helpers.R")
 
+icons <- awesomeIcons(
+  icon = 'bus',
+  iconColor = "#E1DFCC",
+  library = 'fa',
+  markerColor = "#970000"
+)
 

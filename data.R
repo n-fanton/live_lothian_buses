@@ -99,8 +99,7 @@ stops <- httr::GET(url = "https://tfe-opendata.com/api/v1/stops") %>%
   magrittr::extract2(2) %>%
   tibble::as_tibble() %>%
   janitor::clean_names() %>%
-  unnest(services) %>%
-  select(stop_id, name, services)
+  unnest(services)
 
 if(save) write_rds(stops, "stop_services.rds")
 
