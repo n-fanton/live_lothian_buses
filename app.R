@@ -12,6 +12,8 @@ library("leaflet")
 grouped_stops <- read_rds("grouped_stops.rds")
 stop_identifiers <- read_rds("stop_identifiers.rds")
 routes <- read_rds("routes.rds")
+route_shapefile <- read_rds("route_shapefiles.rds")
+stop_services <- read_rds("stop_services.rds")
 
 # Remove Shandwick Place from display for trams
 # Trams should show up when searching for Shandwick Place, but display
@@ -21,4 +23,5 @@ display_identifiers <- stop_identifiers %>%
 
 # Intro: helper functions -----------------------------------------------------
 source("helpers.R")
+
 

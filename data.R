@@ -90,3 +90,47 @@ routes <- list_routes() %>%
   mutate(route_display = paste(name, description))
 
 if (save) write_rds(routes, "routes.rds")
+
+## Route shapefiles -----------------------------------------------------------
+routes <- httr::GET(url = "https://tfe-opendata.com/api/v1/services") %>%
+  httr::content(as = "text", encoding = "UTF-8") %>%
+  jsonlite::fromJSON(flatten = TRUE) %>%
+  magrittr::extract2(2) %>%
+  tibble::as_tibble() %>%
+  janitor::clean_names()
+
+get_route_shapefiles <- function(route) {
+  routes %>%
+    filter(name == as.character(route)) %>%
+    select(routes) %>%
+    pull() %>%
+    magrittr::extract2(1) %>%
+    as_tibble() %>%
+    mutate(route_name = as.character(route))
+}
+
+shapes <- tibble()
+
+for (i in 1:nrow(routes)) {
+  temp <- get_route_shapefiles(routes[i,1])
+
+  shapes <- bind_rows(shapes, temp)
+}
+
+
+all_route_shapefiles <- full_join(routes, shapes, by = c("name" = "route_name"))
+
+if(save) write_rds(all_route_shapefiles, "route_shapefiles.rds")
+
+## Bind stops to services -----------------------------------------------------
+stops <- httr::GET(url = "https://tfe-opendata.com/api/v1/stops") %>%
+  httr::content(as = "text", encoding = "UTF-8") %>%
+  jsonlite::fromJSON(flatten = TRUE) %>%
+  magrittr::extract2(2) %>%
+  tibble::as_tibble() %>%
+  janitor::clean_names() %>%
+  unnest(services) %>%
+  select(stop_id, name, services)
+
+if(save) write_rds(stops, "stop_services.rds")
+

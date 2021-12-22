@@ -72,32 +72,18 @@ server <- function(input, output) {
              `Notes` = note,
              `Direction / ID` = identifier,
              `Stop` = name)
-  })
+  },
+  options = list(pageLength = 8))
 
   ## Create live map ----------------------------------------------------------
-  output$bus_locations <- renderLeaflet({
+  output$services_map <- renderLeaflet({
+    selected_services <- stop_services %>%
+      filter(name %in% input$selected_stops) %>%
+      select(services) %>%
+      pull()
 
-
-    selected_routes <- routes %>%
-      filter(route_display %in% input$selected_map_routes) %>%
-      select(name) %>%
-      magrittr::extract2(1) %>%
-      unlist()
-
-    input$refresh_map
-    live_locations() %>%
-      filter(service_name %in% selected_routes) %>%
-      left_join(display_identifiers, by = c("next_stop_id" = "stop_id")) %>%
-      filter(!is.na(service_name)) %>%
-      mutate(label = paste0("Service <b>", service_name, "</b> to <b>",
-                            destination, "</b><br> Next stop: ", name,
-                            "<br> Recorded ", last_gps_fix_secs,
-                            " seconds ago")) %>%
-      leaflet() %>%
-      addProviderTiles("Esri.WorldStreetMap") %>%
-      addMarkers(lat = ~latitude,
-                 lng = ~longitude,
-                 label = ~lapply(label, htmltools::HTML))
+    create_map(services = selected_services,
+               shapefile = route_shapefile)
 
   })
 }

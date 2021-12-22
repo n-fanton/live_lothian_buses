@@ -27,3 +27,24 @@ to_minutes <- function(hh_mm) {
   ### Display minutes since midnight
   magrittr::add((hours * 60), minutes)
 }
+
+## Create routes map ----------------------------------------------------------
+create_map <- function(services, shapefile = route_shapefle) {
+
+  services <- as.character(services)
+
+  data_to_map <- shapefile %>%
+    filter(name %in% services)
+
+  map <- leaflet() %>%
+    addTiles()
+
+  for (i in 1:nrow(data_to_map)) {
+    map <- map %>%
+      addPolylines(data = data_to_map,
+                   lat = ~points[[i]]$latitude,
+                   lng = ~points[[i]]$longitude)
+  }
+
+  map
+}
