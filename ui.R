@@ -9,7 +9,9 @@ header <- dashboardHeader(
 
 body <- dashboardBody(
   fluidRow(
-    column(width = 3,
+    column(#style = "position: fixed; overflow: visible;",
+           width = 3,
+           h2("Settings"),
            box(
              width = NULL,
              status = "info",
@@ -23,7 +25,11 @@ body <- dashboardBody(
                inputId = "show_terminators",
                label = "Show services that terminate here",
                value = FALSE
-               ),
+               )),
+           box(
+             width = NULL,
+             status = "info",
+             p(strong("Map settings")),
              checkboxInput(
                inputId = "show_nightbus",
                label = "Show night services on map",
@@ -44,10 +50,11 @@ body <- dashboardBody(
              actionButton(
                inputId = "refresh",
                label = "Refresh")),
+           h2("Travel alerts"),
            box(
              width = NULL,
              status = "danger",
-             p("This box will contain warnings downloaded from Lothian.")
+             htmlOutput("alerts")
            )),
     column(width = 9,
            h2("Live departures"),

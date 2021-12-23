@@ -116,5 +116,20 @@ server <- function(input, output) {
     map
 
   })
+
+  output$alerts <- renderUI({
+    httr::GET(url = "https://lothianupdates.com/api/public/getServiceUpdates?key=8094E98541294E7AC25491127FAC7A72") %>%
+      httr::content(as = "text", encoding = "UTF-8") %>%
+      jsonlite::fromJSON(flatten = TRUE) %>%
+      magrittr::extract2(1) %>%
+      tibble::as_tibble() %>%
+      janitor::clean_names() %>%
+      mutate(label = paste0("<b>", title_en, "</b><br>", description_en, "<br>")) %>%
+      select(label) %>%
+      pull() %>%
+      paste(collapse = "") %>%
+      htmltools::HTML()
+
+  })
 }
 
