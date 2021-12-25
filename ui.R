@@ -18,7 +18,7 @@ body <- dashboardBody(
              selectizeInput(
                inputId = "selected_stops",
                label = "Select bus stops",
-               choices = grouped_stops$name,
+               choices = search_names,
                multiple = TRUE,
                selected = "Royal Infirmary"),
              checkboxInput(
@@ -31,10 +31,13 @@ body <- dashboardBody(
              status = "info",
              p(strong("Map settings")),
              checkboxInput(
-               inputId = "show_nightbus",
-               label = "Show night services on map",
+               inputId = "show_all",
+               label = "Show all services that use this stop",
                value = FALSE
              ),
+             helpText(
+               "If unselected, only services displayed in the live",
+               "departures table will be shown"),
              checkboxInput(
                inputId = "show_stops",
                label = "Show bus stops on map",

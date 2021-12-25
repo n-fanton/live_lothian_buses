@@ -119,7 +119,9 @@ if (FALSE) {
       magrittr::use_series(route) %>%
       magrittr::use_series(color)
 
-    if(!is.null(colour)) return(colour)
+    colour <- as.character(colour)
+
+    if(!is.null(colour)) return(colour) else return(NA)
   }
 
   colours <- routes %>%

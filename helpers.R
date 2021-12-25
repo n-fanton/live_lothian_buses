@@ -28,29 +28,25 @@ to_minutes <- function(hh_mm) {
   magrittr::add((hours * 60), minutes)
 }
 
-## Create routes map ----------------------------------------------------------
-create_map <- function(services, shapefile = route_shapefile) {
-
+## Function to add services to mao --------------------------------------------
+add_services_to_map <- function(map, services, shp) {
+  # Clean services input
   services <- as.character(services)
-
-  data_to_map <- shapefile %>%
-    filter(name %in% services)
-
-  map <- leaflet() %>%
-    addProviderTiles("Esri.WorldTopoMap")
-
-
+  # Select data to map
+  data_to_map <- shp %>%
+    filter(route_name %in% services)
+  # Add route to map for each line of selected data
   for (i in 1:nrow(data_to_map)) {
-
+    # Find colour for the route
     route_colour <- data_to_map[i, ] %>%
       select(colour) %>%
       pull()
-
+    # Find label for the route
     route_label <- data_to_map[i, ] %>%
-      mutate(label = paste0("Route ", name, ": ", description)) %>%
+      mutate(label = paste0("Route ", route_name, " to ", destination)) %>%
       select(label) %>%
       pull()
-
+    # Add lines to map
     map <- map %>%
       addPolylines(data = data_to_map,
                    lat = ~points[[i]]$latitude,
@@ -59,6 +55,7 @@ create_map <- function(services, shapefile = route_shapefile) {
                    opacity = 1,
                    label = route_label)
   }
-
+  # Return map
   map
 }
+

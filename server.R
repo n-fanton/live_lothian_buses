@@ -6,30 +6,21 @@ server <- function(input, output) {
     input$refresh
     paste0("Last refreshed: ", current_time())
   })
-  ### Selected API data -------------------------------------------------------
-  data_input <- reactive({
+  ### Download live departures data -------------------------------------------
+  live_departures_data <- reactive({
     input$refresh
-    #### Convert selected bus stop names into codes to query with API ---------
-    selected_stop_codes <- grouped_stops %>%
-      filter(name %in% input$selected_stops) %>%
+
+    selected_stop_ids <- stop_lookups %>%
+      filter(search_name %in% input$selected_stops) %>%
       select(stop_id) %>%
-      magrittr::extract2(1) %>%
-      unlist()
+      pull()
 
     #### Download data from API if services are selected ----------------------
-    if (length(selected_stop_codes) > 0) {
-      live_departures(selected_stop_codes)
+    if (length(selected_stop_ids) > 0) {
+      live_departures(selected_stop_ids)
     } else {
       tibble()
     }
-  })
-
-  ### Put output into a wrapper if there's no data to display -----------------
-  output$departures_ui <- renderUI({
-    if(nrow(data_input()) == 0)
-      return("No data to show")
-
-    dataTableOutput("live_departures")
   })
 
   ### Data table to show live departures --------------------------------------
@@ -41,14 +32,13 @@ server <- function(input, output) {
       to_minutes()
 
     #### Output table ---------------------------------------------------------
-    data_input() %>%
+    live_departures_data() %>%
       {if (input$show_terminators) {
         .
       } else if ("is_terminating_here" %in% names(.)) {
         filter(., !is_terminating_here)
       }} %>%
-     # {if (input$show_terminators) . else filter(., !is_terminating_here)} %>%
-      left_join(display_identifiers, by = c("sms" = "stop_id")) %>%
+      left_join(stop_lookups, by = c("sms" = "stop_id")) %>%
       mutate(
         route_name = case_when(route_name == "T50" ~ "Tram",
                                TRUE ~ route_name),
@@ -64,53 +54,70 @@ server <- function(input, output) {
         t_term = case_when(is_terminating_here ~ "Terminates here. ",
                            TRUE ~ ""),
         note = paste0(t_term, t_diversion)) %>%
-      arrange(departs_in, name, identifier, route_name) %>%
-      select(due, route_name, destination, name, identifier, note) %>%
+      arrange(departs_in, route_name, display_name) %>%
+      select(due, route_name, destination, display_name) %>%
       rename(`Route` = route_name,
-             `Destination` = destination,
-             `Arrives in (minutes)` = due,
-             `Notes` = note,
-             `Direction / ID` = identifier,
-             `Stop` = name)
+             `To` = destination,
+             `Due` = due,
+             `Stop` = display_name)
   },
   options = list(pageLength = 8))
+
+  ### Put output into a wrapper if there's no data to display -----------------
+  output$departures_ui <- renderUI({
+    if (nrow(live_departures_data()) == 0)
+      return("No data to show")
+
+    dataTableOutput("live_departures")
+  })
 
   ## Create live map ----------------------------------------------------------
   output$services_map <- renderLeaflet({
 
-    selected_services <- stop_services %>%
-      filter(name %in% input$selected_stops) %>%
-      {if (input$show_nightbus) {
-        .
-      } else {
-        filter(., stringr::str_sub(services, 1, 1) != "N")
-      }} %>%
-      select(services) %>%
-      pull()
+    input$refresh
 
-    stop_maps <- stop_services %>%
-      filter(services %in% selected_services) %>%
-      group_by(stop_id, name, identifier, latitude, longitude) %>%
-      summarise(services = paste(services, collapse = ', ')) %>%
-      mutate(
-        stop_name = case_when(is.na(identifier) ~ paste0("<b>", name,"</b>"),
-                              TRUE ~ paste0("<b>", name,"</b> ", identifier)),
-        label = paste0(stop_name, "<br>", services))
+    if (input$show_all) {
+      selected_services <- stop_lookups %>%
+        filter(search_name %in% input$selected_stops) %>%
+        select(services) %>%
+        pull() %>%
+        unlist() %>%
+        unique()
+    } else if (nrow(live_departures_data()) > 0) {
+      selected_services <- live_departures_data() %>%
+        select(route_name) %>%
+        pull() %>%
+        unique()
+    } else {
+      selected_services <- NA
+    }
 
+    map <- leaflet() %>%
+      addProviderTiles("Esri.WorldTopoMap")
 
-    map <- create_map(services = selected_services,
-               shapefile = route_shapefile)
-
-    if (input$show_stops) {
+    if (!is.na(selected_services) & length(selected_services) > 0) {
+      map <- map %>%
+        add_services_to_map(services = selected_services,
+                            shp = shapefiles)
+    } else {
       map <- map %>%
         addAwesomeMarkers(
           icon = icons,
-          data = stop_maps,
-          lat = ~latitude,
-          lng = ~longitude,
-          label = ~lapply(label, htmltools::HTML),
-          clusterOptions = markerClusterOptions(
-            maxClusterRadius = 33))
+          lat = 55.951741,
+          lng = -3.191745,
+          label = "One day, there will be buses")
+    }
+
+    if (input$show_stops) {
+      # map <- map %>%
+      #   addAwesomeMarkers(
+      #     icon = icons,
+      #     data = stop_maps,
+      #     lat = ~latitude,
+      #     lng = ~longitude,
+      #     label = ~lapply(label, htmltools::HTML),
+      #     clusterOptions = markerClusterOptions(
+      #       maxClusterRadius = 33))
     }
 
     map
