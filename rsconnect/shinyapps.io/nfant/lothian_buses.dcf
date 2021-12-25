@@ -5,7 +5,7 @@ account: nfant
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 5348622
-bundleId: 5404411
+bundleId: 5409188
 url: https://nfant.shinyapps.io/lothian_buses/
-when: 1640270607.95498
-lastSyncTime: 1640270607.95501
+when: 1640475005.10193
+lastSyncTime: 1640475005.10195

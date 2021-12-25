@@ -13,7 +13,6 @@ search_names <- read_rds(here::here("data", "search_names.rds"))
 stop_lookups <- read_rds(here::here("data", "stop_lookups.rds"))
 shapefiles   <- read_rds(here::here("data", "route_shapefiles.rds"))
 
-stop_services <- read_rds("stop_services.rds")
 
 # Remove Shandwick Place from display for trams
 # Trams should show up when searching for Shandwick Place, but display
