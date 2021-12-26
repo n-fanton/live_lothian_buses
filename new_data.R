@@ -18,11 +18,23 @@ stops <- httr::GET(url = "https://tfe-opendata.com/api/v1/stops") %>%
   mutate(stop_id = case_when(stop_id == 36290146 ~ "36290145",
                              TRUE ~ as.character(stop_id))) %>%
   left_join(new_stop_names, by = "stop_id") %>%
-  mutate(name = case_when(!is.na(new_name) ~ new_name,
-                          TRUE ~ name),
-         search_name = name,
-         display_name = case_when(is.na(identifier) ~ paste(name, direction),
-                                  TRUE ~ paste(name, identifier))) %>%
+  mutate(name =
+           case_when(!is.na(new_name) ~ new_name,
+                     TRUE ~ name),
+         search_name =
+           name,
+         int_name =
+           case_when(service_type == "tram" &
+                       !(stop_id %in% c("36290137", "36290138",
+                                        "36290104", "36290105")) ~
+                       paste(name, "(Tram)"),
+                     TRUE ~ name),
+         direction =
+           case_when(stop_id == "36290145" ~ "",
+                     TRUE ~ direction),
+         display_name =
+           case_when(is.na(identifier) ~ paste(int_name, direction),
+                     TRUE ~ paste(int_name, identifier))) %>%
   rowwise() %>%
   mutate(display_services = paste(services, collapse = ", "),
          display_destinations = paste(destinations, collapse = ", ")) %>%

@@ -223,9 +223,7 @@ server <- function(input, output) {
             lng = ~longitude,
             # Without lapply, each stop will show data for all
             # see https://stackoverflow.com/questions/43144596
-            label = ~lapply(stop_label, htmltools::HTML),
-            clusterOptions = markerClusterOptions(
-              maxClusterRadius = 33))
+            label = ~lapply(stop_label, htmltools::HTML))
       }
 
     #### Display live bus locations on map (if requested)
