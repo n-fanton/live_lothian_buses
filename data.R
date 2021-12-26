@@ -1,141 +1,56 @@
-# Prepare data for app --------------------------------------------------------
-## Save new RDS data? ---------------------------------------------------------
-save <- TRUE
+# Download and clean data -----------------------------------------------------
 
-## Download all stops from TfE API --------------------------------------------
-all_stops <- lothianBuses::get_stops() %>%
-  mutate(
-    ### Rename tram stops -----------------------------------------------------
-    # Stops are renamed to normal names, and often to correspond to and group
-    # with nearby bus stops
-    name = case_when(
-      stop_id == "36290101" ~ "Airport",
-      stop_id == "36290104" ~ "Balgreen Tram Stop",
-      stop_id == "36290105" ~ "Balgreen Tram Stop",
-      stop_id == "36290107" ~ "Bankhead",
-      stop_id == "36290108" ~ "Bankhead",
-      stop_id == "36290110" ~ "Edinburgh Gateway",
-      stop_id == "36290111" ~ "Edinburgh Gateway",
-      stop_id == "36290113" ~ "Gogarburn",
-      stop_id == "36290114" ~ "Gogarburn",
-      stop_id == "36290116" ~ "Gyle Centre",
-      stop_id == "36290117" ~ "Gyle Centre",
-      stop_id == "36290119" ~ "Haymarket Station",
-      stop_id == "36290120" ~ "Haymarket Station",
-      stop_id == "36290122" ~ "Ingliston Park & Ride",
-      stop_id == "36290123" ~ "Ingliston Park & Ride",
-      stop_id == "36290125" ~ "Murrayfield Stadium",
-      stop_id == "36290126" ~ "Murrayfield Stadium",
-      stop_id == "36290128" ~ "Edinburgh Park Central",
-      stop_id == "36290129" ~ "Edinburgh Park Central",
-      stop_id == "36290131" ~ "Edinburgh Park Station",
-      stop_id == "36290132" ~ "Edinburgh Park Station",
-      stop_id == "36290134" ~ "Princes Street (tram)",
-      stop_id == "36290135" ~ "Princes Street (tram)",
-      stop_id == "36290137" ~ "Saughton",
-      stop_id == "36290138" ~ "Saughton",
-      stop_id == "36290140" ~ "West End",
-      stop_id == "36290141" ~ "West End",
-      stop_id == "36290143" ~ "St Andrew Square",
-      stop_id == "36290144" ~ "St Andrew Square",
-      stop_id == "36290146" ~ "York Place",
-      TRUE ~ name),
-    stop_id = case_when(
-      stop_id == 36290146 ~ "36290145",
-      TRUE ~ as.character(stop_id)))
+## Alternative bus stop names -------------------------------------------------
+new_stop_names <- read_csv(here::here("data", "display_names.csv"),
+                           col_types = cols(.default = col_character())) %>%
+  select(stop_id, new_name)
 
-## Grouped stops to search for in the app -------------------------------------
-grouped_stops <- all_stops %>%
-  mutate(
-    ### Use station direction as identifier if there is none ------------------
-    identifier = case_when(
-      is.na(identifier) ~ direction,
-      TRUE ~ identifier)) %>%
-  bind_rows(
-    ### Add additional names for West End / Shandwick Place tram --------------
-    all_stops %>%
-      filter(stop_id %in% c("36290140", "36290141")) %>%
-      mutate(name = "Shandwick Place")) %>%
-  group_by(name) %>%
-  summarise(
-    ### Group IDs and identifiers for each stop name --------------------------
-    stop_ids_all = paste(unique(stop_id), collapse = ", "),
-    identifiers = paste(unique(identifier), collapse = ", "),
-    number = n()) %>%
-  mutate(
-    ### Convert grouped IDs and identifiers into vectors ----------------------
-    stop_id = stringr::str_split(stop_ids_all, ", "),
-    identifier = stringr::str_split(identifiers, ", ")) %>%
-  select(name, stop_id, identifier)
+## Route colours --------------------------------------------------------------
+route_colours <- read_rds(here::here("data", "route_colours.rds"))
 
-### Save ----------------------------------------------------------------------
-if (save) write_rds(grouped_stops, "grouped_stops.rds")
-
-## Stop identifiers to display in app -----------------------------------------
-stop_identifiers <- all_stops %>%
-  mutate(
-    ### Use 'TRAM' as identifier for tram stops -------------------------------
-    identifier = case_when(
-      service_1 == "T50" ~ "TRAM",
-      is.na(identifier) ~ direction,
-      TRUE ~ identifier)) %>%
-  mutate(stop_id = as.character(stop_id)) %>%
-  select(stop_id, identifier, name)
-
-### Save ----------------------------------------------------------------------
-if (save) write_rds(stop_identifiers, "stop_identifiers.rds")
-
-## List of routes for map filtering -------------------------------------------
-routes <- list_routes() %>%
-  mutate(route_display = paste(name, description))
-
-if (save) write_rds(routes, "routes.rds")
-
-
-## Bind stops to services -----------------------------------------------------
+## Bus stops ------------------------------------------------------------------
 stops <- httr::GET(url = "https://tfe-opendata.com/api/v1/stops") %>%
   httr::content(as = "text", encoding = "UTF-8") %>%
   jsonlite::fromJSON(flatten = TRUE) %>%
   magrittr::extract2(2) %>%
   tibble::as_tibble() %>%
   janitor::clean_names() %>%
-  unnest(services)
+  mutate(stop_id = case_when(stop_id == 36290146 ~ "36290145",
+                             TRUE ~ as.character(stop_id))) %>%
+  left_join(new_stop_names, by = "stop_id") %>%
+  mutate(name =
+           case_when(!is.na(new_name) ~ new_name,
+                     TRUE ~ name),
+         search_name =
+           name,
+         int_name =
+           case_when(service_type == "tram" &
+                       !(stop_id %in% c("36290137", "36290138",
+                                        "36290104", "36290105")) ~
+                       paste(name, "(Tram)"),
+                     TRUE ~ name),
+         direction =
+           case_when(stop_id == "36290145" ~ "",
+                     TRUE ~ direction),
+         display_name =
+           case_when(is.na(identifier) ~ paste(int_name, direction),
+                     TRUE ~ paste(int_name, identifier))) %>%
+  rowwise() %>%
+  mutate(display_services = paste(services, collapse = ", "),
+         display_destinations = paste(destinations, collapse = ", ")) %>%
+  ungroup()
 
-if(save) write_rds(stops, "stop_services.rds")
+stops <- stops %>%
+  bind_rows(stops %>%
+              filter(stop_id %in% c("36290140", "36290141")) %>%
+              mutate(search_name = "Shandwick Place"))%>%
+  bind_rows(stops %>%
+              filter(stop_id == "36236576") %>%
+              mutate(search_name = "Shandwick Place"))
 
-## Get route colours ----------------------------------------------------------
+write_rds(stops, here::here("data", "stops.rds"))
 
-if (FALSE) {
-  get_route_colour <- function(route) {
-
-    route <- as.character(route)
-    message(route)
-
-    route_api <- paste0("https://lothianapi.com/routePatterns?route_name=", route)
-
-    colour <- httr::GET(url = route_api) %>%
-      httr::content(as = "text", encoding = "UTF-8") %>%
-      jsonlite::fromJSON(flatten = TRUE) %>%
-      magrittr::use_series(route) %>%
-      magrittr::use_series(color)
-
-    colour <- as.character(colour)
-
-    if(!is.null(colour)) return(colour) else return(NA)
-  }
-
-  colours <- routes %>%
-    filter(!(name %in% c("281"))) %>%
-    select(name) %>%
-    rowwise() %>%
-    mutate(colour = get_route_colour(name)) %>%
-    ungroup() %>%
-    mutate(colour = stringr::str_to_upper(colour))
-
-  write_rds(colours, "route_colours.rds")
-}
-
-## Route shapefiles -----------------------------------------------------------
+## Routes ---------------------------------------------------------------------
 routes <- httr::GET(url = "https://tfe-opendata.com/api/v1/services") %>%
   httr::content(as = "text", encoding = "UTF-8") %>%
   jsonlite::fromJSON(flatten = TRUE) %>%
@@ -143,6 +58,39 @@ routes <- httr::GET(url = "https://tfe-opendata.com/api/v1/services") %>%
   tibble::as_tibble() %>%
   janitor::clean_names()
 
+# Prepare datasets to actually use in app (light, minimal versions) -----------
+
+## Bus stop names for searching -----------------------------------------------
+search_names <- stops %>%
+  select(search_name) %>%
+  unique() %>%
+  pull()
+
+write_rds(search_names, here::here("data", "search_names.rds"))
+
+## Stop lookups for displaying ------------------------------------------------
+
+stop_lookups <- stops %>%
+  select(stop_id, search_name, display_name, services)
+
+write_rds(stop_lookups, here::here("data", "stop_lookups.rds"))
+
+## Lookup of stops by service for use in map ----------------------------------
+stops_by_route <- stops %>%
+  select(stop_id, services) %>%
+  unnest(services) %>%
+  group_by(services) %>%
+  summarise(stop_id = paste(stop_id, collapse = ",")) %>%
+  mutate(stop_id = str_split(stop_id, ","))
+
+write_rds(stops_by_route, here::here("data", "stops_by_route.rds"))
+
+## Sort out shapefiles for each route -----------------------------------------
+
+### Extract shapefiles from downloaded route data -----------------------------
+
+# Shapefiles are saved as a dataset within a dataset within the downloaded
+# files, so here they're extracted for each route
 get_route_shapefiles <- function(route) {
   routes %>%
     filter(name == as.character(route)) %>%
@@ -150,21 +98,33 @@ get_route_shapefiles <- function(route) {
     pull() %>%
     magrittr::extract2(1) %>%
     as_tibble() %>%
-    mutate(route_name = as.character(route))
-}
+    mutate(route_name = as.character(route))}
 
-shapes <- tibble()
+# Need to initialise an empty tibble to then add data
+route_shapefiles <- tibble()
 
+# Add to that tibble the geospatial data for each route
 for (i in 1:nrow(routes)) {
   temp <- get_route_shapefiles(routes[i,1])
-
-  shapes <- bind_rows(shapes, temp)
+  route_shapefiles <- bind_rows(route_shapefiles, temp)
 }
 
+route_shapefiles <- route_shapefiles %>%
+  left_join(route_colours, by = c("route_name" = "name")) %>%
+  rowid_to_column("order") %>%
+  arrange(-order) %>%
+  select(-order)
 
-all_route_shapefiles <- full_join(routes, shapes,
-                                  by = c("name" = "route_name")) %>%
-  left_join(colours)
+write_rds(route_shapefiles, here::here("data", "route_shapefiles.rds"))
 
-if(save) write_rds(all_route_shapefiles, "route_shapefiles.rds")
+### Download tram route shapefile ---------------------------------------------
 
+tramlines_url <- paste0(
+  "https://opendata.arcgis.com/api/v3/datasets/",
+  "fcd8d11078284316ac4b40244b069a4a_8/downloads/",
+  "data?format=geojson&spatialRefId=4326")
+
+tram_shapefile <- sf::st_read(tramlines_url) %>%
+  sf::st_zm(drop = T, what = "ZM")
+
+write_rds(tram_shapefile, here::here("data", "tram_shapefile.rds"))
