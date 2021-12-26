@@ -41,6 +41,11 @@ body <- dashboardBody(
              checkboxInput(
                inputId = "show_stops",
                label = "Show bus stops on map",
+               value = FALSE
+             ),
+             checkboxInput(
+               inputId = "show_live_buses",
+               label = "Show live bus locations",
                value = TRUE
              )),
            box(

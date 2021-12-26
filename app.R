@@ -14,6 +14,8 @@ stop_lookups <- read_rds(here::here("data", "stop_lookups.rds"))
 shapefiles   <- read_rds(here::here("data", "route_shapefiles.rds"))
 stops        <- read_rds(here::here("data", "stops.rds"))
 stops_by_route <- read_rds(here::here("data", "stops_by_route.rds"))
+route_colours <- read_rds(here::here("data", "route_colours.rds"))
+
 
 
 # Remove Shandwick Place from display for trams
@@ -24,10 +26,4 @@ stops_by_route <- read_rds(here::here("data", "stops_by_route.rds"))
 # Intro: helper functions -----------------------------------------------------
 source("helpers.R")
 
-icons <- awesomeIcons(
-  icon = 'bus',
-  iconColor = "#E1DFCC",
-  library = 'fa',
-  markerColor = "#970000"
-)
 

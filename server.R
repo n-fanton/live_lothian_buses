@@ -130,13 +130,49 @@ server <- function(input, output) {
 
       map <- map %>%
         addAwesomeMarkers(
-          icon = icons,
+          icon = awesomeIcons(
+            icon = "bus",
+            iconColor = "#E1DFCC",
+            library = "fa",
+            markerColor = "#970000"),
           data = stop_map_data,
           lat = ~latitude,
           lng = ~longitude,
           label = ~lapply(stop_label, htmltools::HTML),
           clusterOptions = markerClusterOptions(
             maxClusterRadius = 33))
+    }
+
+    if (input$show_live_buses) {
+      temp_locations <- live_locations() %>%
+        filter(service_name %in% selected_services) %>%
+        left_join(stop_lookups, by = c("next_stop_id" = "stop_id")) %>%
+        left_join(route_colours, by = c("service_name" = "name")) %>%
+        mutate(
+          display_speed = case_when(
+            is.na(speed) ~ "Stopped",
+            speed == 0 ~ "Stopped",
+            TRUE ~ paste0("Moving at ", speed, "mph")),
+          bus_label = paste0(
+            "Service <b>", service_name, "</b> to <b>", destination, "</b><br>",
+            "Next stop: ", display_name, "<br>", display_speed))
+
+
+      map <- map %>%
+        addAwesomeMarkers(
+          data = temp_locations,
+          lat = ~latitude,
+          lng = ~longitude,
+          label = ~lapply(bus_label, htmltools::HTML),
+          icon = ~awesomeIcons(
+            icon = "arrow-up",
+            iconColor = colour,
+            library = "fa",
+            markerColor = "white",
+            iconRotate = heading),
+          clusterOptions = markerClusterOptions(
+            maxClusterRadius = 33))
+
     }
 
     map
