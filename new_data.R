@@ -6,7 +6,7 @@ new_stop_names <- read_csv(here::here("data", "display_names.csv"),
   select(stop_id, new_name)
 
 ## Route colours --------------------------------------------------------------
-route_colours <- read_rds("route_colours.rds")
+route_colours <- read_rds(here::here("data", "route_colours.rds"))
 
 ## Bus stops ------------------------------------------------------------------
 stops <- httr::GET(url = "https://tfe-opendata.com/api/v1/stops") %>%
@@ -22,12 +22,18 @@ stops <- httr::GET(url = "https://tfe-opendata.com/api/v1/stops") %>%
                           TRUE ~ name),
          search_name = name,
          display_name = case_when(is.na(identifier) ~ paste(name, direction),
-                                  TRUE ~ paste(name, identifier)))
+                                  TRUE ~ paste(name, identifier))) %>%
+  rowwise() %>%
+  mutate(display_services = paste(services, collapse = ", "),
+         display_destinations = paste(destinations, collapse = ", ")) %>%
+  ungroup()
 
 stops <- stops %>%
   bind_rows(stops %>%
               filter(stop_id %in% c("36290140", "36290141")) %>%
               mutate(search_name = "Shandwick Place"))
+
+write_rds(stops, here::here("data", "stops.rds"))
 
 ## Routes ---------------------------------------------------------------------
 routes <- httr::GET(url = "https://tfe-opendata.com/api/v1/services") %>%
@@ -54,6 +60,16 @@ stop_lookups <- stops %>%
 
 write_rds(stop_lookups, here::here("data", "stop_lookups.rds"))
 
+## Lookup of stops by service for use in map ----------------------------------
+stops_by_route <- stops %>%
+  select(stop_id, services) %>%
+  unnest(services) %>%
+  group_by(services) %>%
+  summarise(stop_id = paste(stop_id, collapse = ",")) %>%
+  mutate(stop_id = str_split(stop_id, ","))
+
+write_rds(stops_by_route, here::here("data", "stops_by_route.rds"))
+
 ## Sort out shapefiles for each route -----------------------------------------
 
 ### Extract shapefiles from downloaded route data -----------------------------
@@ -79,6 +95,9 @@ for (i in 1:nrow(routes)) {
 }
 
 route_shapefiles <- route_shapefiles %>%
-  left_join(route_colours, by = c("route_name" = "name"))
+  left_join(route_colours, by = c("route_name" = "name")) %>%
+  rowid_to_column("order") %>%
+  arrange(-order) %>%
+  select(-order)
 
 write_rds(route_shapefiles, here::here("data", "route_shapefiles.rds"))

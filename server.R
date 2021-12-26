@@ -95,7 +95,8 @@ server <- function(input, output) {
     map <- leaflet() %>%
       addProviderTiles("Esri.WorldTopoMap")
 
-    if (!is.na(selected_services) & length(selected_services) > 0) {
+    if (suppressWarnings(!is.na(selected_services)) &
+        length(selected_services) > 0) {
       map <- map %>%
         add_services_to_map(services = selected_services,
                             shp = shapefiles)
@@ -108,16 +109,34 @@ server <- function(input, output) {
           label = "One day, there will be buses")
     }
 
-    if (input$show_stops) {
-      # map <- map %>%
-      #   addAwesomeMarkers(
-      #     icon = icons,
-      #     data = stop_maps,
-      #     lat = ~latitude,
-      #     lng = ~longitude,
-      #     label = ~lapply(label, htmltools::HTML),
-      #     clusterOptions = markerClusterOptions(
-      #       maxClusterRadius = 33))
+    if (input$show_stops &
+        suppressWarnings(!is.na(selected_services)) &
+        length(selected_services) > 0) {
+
+      stops_to_display <- stops_by_route %>%
+        filter(services %in% selected_services) %>%
+        select(stop_id) %>%
+        pull() %>%
+        unlist() %>%
+        unique()
+
+      stop_map_data <- stops %>%
+        filter(stop_id %in% stops_to_display) %>%
+        mutate(stop_label = paste0(
+          "<b>", display_name, "</b><br><b> Routes: </b>",
+          display_services, "<br><b> To: </b>",
+          display_destinations
+        ))
+
+      map <- map %>%
+        addAwesomeMarkers(
+          icon = icons,
+          data = stop_map_data,
+          lat = ~latitude,
+          lng = ~longitude,
+          label = ~lapply(stop_label, htmltools::HTML),
+          clusterOptions = markerClusterOptions(
+            maxClusterRadius = 33))
     }
 
     map
