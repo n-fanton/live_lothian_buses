@@ -15,7 +15,7 @@ shapefiles   <- read_rds(here::here("data", "route_shapefiles.rds"))
 stops        <- read_rds(here::here("data", "stops.rds"))
 stops_by_route <- read_rds(here::here("data", "stops_by_route.rds"))
 route_colours <- read_rds(here::here("data", "route_colours.rds"))
-
+tram_shapefile <- read_rds(here::here("data", "tram_shapefile.rds"))
 
 
 # Remove Shandwick Place from display for trams

@@ -52,8 +52,8 @@ server <- function(input, output) {
       mutate(
         # The tram route is listed as T50 (ambitious!), so here I'm changing
         # it to just say 'Tram'
-        route_name = case_when(route_name == "T50" ~ "Tram",
-                               TRUE ~ route_name),
+        #route_name = case_when(route_name == "T50" ~ "Tram",
+        #                       TRUE ~ route_name),
         # Find minutes since midnight of departures
         time_after_midnight = to_minutes(display_time),
         # Calculate departure time in minutes since current time
@@ -71,6 +71,7 @@ server <- function(input, output) {
       arrange(departs_in, route_name, display_name) %>%
       # Select only variables that make it to output
       select(due, route_name, destination, display_name) %>%
+      unique() %>%
       # Rename into human-friendly variable names
       # Importatnt to display stop because multiple stops can be selected,
       # and display_name also includes identifiers where there's multiple
@@ -125,13 +126,17 @@ server <- function(input, output) {
       selected_services <- NULL
     }
 
+    # Does the map require the tram line to be drawn?
+    map_requires_tram <- "T50" %in% selected_services
+
     #### Add services to map --------------------------------------------------
-    if (length(selected_services) > 0) {
+    if (length(selected_services[selected_services != "T50"]) > 0) {
       # If there are services to display, add them to the base map
       map <- map %>%
-        add_services_to_map(services = selected_services,
-                            shp = shapefiles)
-    } else {
+        add_services_to_map(
+          services = selected_services[selected_services != "T50"],
+          shp = shapefiles)
+    } else if (!map_requires_tram) {
       # If there are no services to display, just add a note that says so
       map <- map %>%
         addAwesomeMarkers(
@@ -140,11 +145,21 @@ server <- function(input, output) {
             iconColor = "red",
             library = "fa",
             markerColor = "white",
-            iconRotate = 180),
+            iconRotate = 180,
+            spin = TRUE),
           lat = 55.951741,
           lng = -3.191745,
           label = "One day, there will be buses")
     }
+
+    #### Add tram line to map if required -------------------------------------
+    if (map_requires_tram) {
+      map <- map %>%
+        addPolylines(data = tram_shapefile,
+                     color = "#980006",
+                     label = "Airport - York Place tram")
+    }
+
 
     #### Add bus stops to map (if requested) ----------------------------------
     if (input$show_stops & length(selected_services) > 0) {
@@ -182,6 +197,35 @@ server <- function(input, output) {
           label = ~lapply(stop_label, htmltools::HTML),
           clusterOptions = markerClusterOptions(
             maxClusterRadius = 33))
+      } else if (length(selected_services) > 0) {
+        # Otherwise just show the selected stops on map
+
+        # Get data for the selected stops: all routes that call there,
+        # all destinations, and where the stops actually are
+        # TODO: Show all stops in group rather than just the exact stops
+        stop_map_data <- stops %>%
+          filter(search_name %in% input$selected_stops) %>%
+          mutate(stop_label = paste0(
+            "<b>", display_name, "</b><br><b> Routes: </b>",
+            display_services, "<br><b> To: </b>",
+            display_destinations))
+
+        # Add the stop data to map, with custom markers
+        map <- map %>%
+          addAwesomeMarkers(
+            icon = awesomeIcons(
+              icon = "bus",
+              iconColor = "#E1DFCC",
+              library = "fa",
+              markerColor = "#970000"),
+            data = stop_map_data,
+            lat = ~latitude,
+            lng = ~longitude,
+            # Without lapply, each stop will show data for all
+            # see https://stackoverflow.com/questions/43144596
+            label = ~lapply(stop_label, htmltools::HTML),
+            clusterOptions = markerClusterOptions(
+              maxClusterRadius = 33))
       }
 
     #### Display live bus locations on map (if requested)
@@ -231,7 +275,6 @@ server <- function(input, output) {
     # Travel alerts link - I got this directly from the Lothian website
     alerts_url <- paste0("https://lothianupdates.com/api/public/",
                          "getServiceUpdates")
-
 
     # The alerts are returned as JSON, but all I really need is one single
     # bit of HTML-styled text to display

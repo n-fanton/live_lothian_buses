@@ -31,6 +31,9 @@ stops <- httr::GET(url = "https://tfe-opendata.com/api/v1/stops") %>%
 stops <- stops %>%
   bind_rows(stops %>%
               filter(stop_id %in% c("36290140", "36290141")) %>%
+              mutate(search_name = "Shandwick Place"))%>%
+  bind_rows(stops %>%
+              filter(stop_id == "36236576") %>%
               mutate(search_name = "Shandwick Place"))
 
 write_rds(stops, here::here("data", "stops.rds"))
@@ -101,3 +104,15 @@ route_shapefiles <- route_shapefiles %>%
   select(-order)
 
 write_rds(route_shapefiles, here::here("data", "route_shapefiles.rds"))
+
+### Download tram route shapefile ---------------------------------------------
+
+tramlines_url <- paste0(
+  "https://opendata.arcgis.com/api/v3/datasets/",
+  "fcd8d11078284316ac4b40244b069a4a_8/downloads/",
+  "data?format=geojson&spatialRefId=4326")
+
+tram_shapefile <- sf::st_read(tramlines_url) %>%
+  sf::st_zm(drop = T, what = "ZM")
+
+write_rds(tram_shapefile, here::here("data", "tram_shapefile.rds"))
