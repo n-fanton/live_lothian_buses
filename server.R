@@ -62,6 +62,9 @@ server <- function(input, output) {
         # if due in less than a minute
         due = case_when(departs_in < 1 ~ "DUE",
                         TRUE ~ as.character(departs_in)),
+        # Add asterisk if departure is not live
+        due = case_when(!is_live ~ paste0(due, "*"),
+                        TRUE ~ due),
         destination = case_when(
           # This typo has been annoying me for the three years I've lived
           # in Edinburgh

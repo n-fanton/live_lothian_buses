@@ -144,7 +144,8 @@ body <- dashboardBody(
             collapsible = FALSE,
             status = "success",
             width = NULL,
-            uiOutput("departures_ui")
+            uiOutput("departures_ui"),
+            helpText("* Timetabled, but not live")
           ),
           box(
             ### Map output displaying services from the selected stop -------------
