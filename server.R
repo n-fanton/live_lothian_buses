@@ -229,7 +229,7 @@ server <- function(input, output) {
             label = ~lapply(stop_label, htmltools::HTML))
       }
 
-    #### Display live bus locations on map (if requested)
+    #### Display live bus locations on map (if requested) ---------------------
     if (input$show_live_buses & length(selected_services) > 0) {
       # Load live locations from TfE and then filter for just the services
       # we want displayed on the map
@@ -238,6 +238,10 @@ server <- function(input, output) {
         left_join(stop_lookups, by = c("next_stop_id" = "stop_id")) %>%
         left_join(route_colours, by = c("service_name" = "name")) %>%
         mutate(
+          # Fix 'Royal Infirmry' in destinations
+          destination = case_when(
+            destination == "Royal Infirmry" ~ "Royal Infirmary",
+            TRUE ~ destination),
           # Want to avoid displaying NAmph or 'Moving at 0mph'
           display_speed = case_when(
             is.na(speed) ~ "Stopped",
