@@ -1,5 +1,4 @@
 # Download and clean data -----------------------------------------------------
-
 ## Alternative bus stop names -------------------------------------------------
 new_stop_names <- read_csv(here::here("data", "display_names.csv"),
                            col_types = cols(.default = col_character())) %>%
@@ -40,6 +39,8 @@ stops <- httr::GET(url = "https://tfe-opendata.com/api/v1/stops") %>%
          display_destinations = paste(destinations, collapse = ", ")) %>%
   ungroup()
 
+# Add extra entries for West End tram stop and Atholl Crescent
+# bus stop to display when looking up Shandwick Place
 stops <- stops %>%
   bind_rows(stops %>%
               filter(stop_id %in% c("36290140", "36290141")) %>%
