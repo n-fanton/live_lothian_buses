@@ -129,17 +129,22 @@ server <- function(input, output) {
       selected_services <- NULL
     }
 
-    # Does the map require the tram line to be drawn?
-    map_requires_tram <- "T50" %in% selected_services
 
     #### Add services to map --------------------------------------------------
-    if (length(selected_services[selected_services != "T50"]) > 0) {
+    if (length(selected_services) > 0) {
       # If there are services to display, add them to the base map
+
+      routes_to_display <- routes_shapefile %>%
+        filter(name %in% selected_services)
+
       map <- map %>%
-        add_services_to_map(
-          services = selected_services[selected_services != "T50"],
-          shp = shapefiles)
-    } else if (!map_requires_tram) {
+        addPolylines(
+          data = routes_to_display,
+          color = ~colour,
+          label = ~lapply(label, htmltools::HTML),
+          opacity = 1
+        )
+    } else {
       # If there are no services to display, just add a note that says so
       map <- map %>%
         addAwesomeMarkers(
@@ -154,15 +159,6 @@ server <- function(input, output) {
           lng = -3.191745,
           label = "One day, there will be buses")
     }
-
-    #### Add tram line to map if required -------------------------------------
-    if (map_requires_tram) {
-      map <- map %>%
-        addPolylines(data = tram_shapefile,
-                     color = "#980006",
-                     label = "Airport - York Place tram")
-    }
-
 
     #### Add bus stops to map (if requested) ----------------------------------
     if (input$show_stops & length(selected_services) > 0) {
