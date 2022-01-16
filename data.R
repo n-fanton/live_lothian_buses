@@ -129,3 +129,53 @@ tram_shapefile <- sf::st_read(tramlines_url) %>%
   sf::st_zm(drop = T, what = "ZM")
 
 write_rds(tram_shapefile, here::here("data", "tram_shapefile.rds"))
+
+
+### New way of doing bus maps -------------------------------------------------
+# Managed to convince the data to be a simple features thing
+
+busdata <- lothianBuses::list_routes(.details = TRUE)
+
+bus_shapefile <- busdata %>%
+  unnest("routes") %>%
+  unnest("points") %>%
+  st_as_sf(coords = c("longitude", "latitude"),
+           crs = "+proj=longlat +datum=WGS84") %>%
+  group_by(name, description, destination, service_type) %>%
+  summarize(m = mean(as.numeric(name)), do_union = FALSE) %>%
+  st_cast("LINESTRING") %>%
+  left_join(route_colours)
+
+tram_shapefile <- read_csv(here::here("data", "tramline.csv")) %>%
+  select(-idk) %>%
+  mutate(
+    name = "T50",
+    description = "Airport - York Place",
+    destination = "Airport or York Place",
+    colour = "#8C1713",
+    service_type = "tram",
+    order = 0
+  ) %>%
+  st_as_sf(coords = c("longitude", "latitude"),
+           crs = "+proj=longlat +datum=WGS84") %>%
+  group_by(name, description, destination, colour, service_type, order) %>%
+  summarize(order = mean(order), do_union = FALSE) %>%
+  st_cast("LINESTRING") %>%
+  ungroup()
+
+all_shapefile <- bus_shapefile %>%
+  ungroup() %>%
+  mutate(order = row_number()) %>%
+  bind_rows(tram_shapefile) %>%
+  mutate(
+    colour = case_when(
+      name %in% c("125", "126", "127") ~ "#FF9800",
+      name == "45" ~ "#51B8BB",
+      TRUE ~ colour
+    )
+  ) %>%
+  arrange(order) %>%
+  select(-c(m, order))
+
+geojsonio::geojson_write(all_shapefile,
+                         file = here::here("data", "tfe_shapefile.geojson"))
