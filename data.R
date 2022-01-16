@@ -175,7 +175,13 @@ all_shapefile <- bus_shapefile %>%
     )
   ) %>%
   arrange(order) %>%
-  select(-c(m, order))
+  select(-c(m, order)) %>%
+  mutate(
+    label = case_when(
+      name == "T50" ~ "<b>Tram</b> between <b>City Centre</b> and <b>York Place</b>",
+      TRUE ~ paste0("Route <b>", name, "</b> to <b>", destination, "</b>")
+    )
+  )
 
 geojsonio::geojson_write(all_shapefile,
                          file = here::here("data", "tfe_shapefile.geojson"))
