@@ -2,6 +2,7 @@
 ## Find current time in HH:MM -------------------------------------------------
 current_time <- function() {
   Sys.time() %>%
+    with_tz("GB") %>%
     str_sub(12,16)
 }
 

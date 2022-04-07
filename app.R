@@ -7,6 +7,8 @@ library("shinythemes")
 library("shinyWidgets")
 library("leaflet")
 library("sf")
+library("lubridate")
+library("magrittr")
 
 # Intro: data -----------------------------------------------------------------
 

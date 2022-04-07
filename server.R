@@ -34,6 +34,7 @@ server <- function(input, output) {
     # allows for post-midnight services: if requested time is in the 'past',
     # e.g. 01:30 when it's currently 11:20, it'll add 24h to the 01:30.
     minutes_since_midnight <- Sys.time() %>%
+      with_tz("GB") %>%
       str_sub(12,16) %>%
       to_minutes()
 
