@@ -55,7 +55,7 @@ server <- function(input, output) {
         #route_name = case_when(route_name == "T50" ~ "Tram",
         #                       TRUE ~ route_name),
         # Find minutes since midnight of departures
-        time_after_midnight = to_minutes(display_time),
+        time_after_midnight = to_minutes(str_sub(ineo_utc_time, 1, 5)),
         # Calculate departure time in minutes since current time
         departs_in = time_after_midnight - minutes_since_midnight,
         # Sometimes the departure time shows as -1, so here it shows as 'DUE'
