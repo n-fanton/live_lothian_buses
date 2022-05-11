@@ -43,7 +43,7 @@ body <- dashboardBody(
               label = "Select bus stops",
               choices = search_names,
               multiple = TRUE,
-              selected = "Royal Infirmary"
+              selected = "Gateside Road"
             ),
             checkboxInput(
               # TfE API returns services that terminate, which may not be useful
