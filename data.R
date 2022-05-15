@@ -167,6 +167,20 @@ tram_shapefile <- read_csv(here::here("data", "tramline.csv")) %>%
   st_cast("LINESTRING") %>%
   ungroup()
 
+# Add shapefile for X7 route
+
+x7_shapefile <- st_read(here::here("data", "x7_shapefile.geojson")) %>%
+  mutate(
+    name = "X7",
+    description = "Edinbugh - Dunbar Express",
+    service_type = "eastcoast",
+    colour = "#DA1C5C",
+    label = paste0("Route <b>X7</b> to <b>", destination, "</b>")
+  ) %>%
+  select(
+    name, description, destination, service_type, geometry, colour, label
+  )
+
 all_shapefile <- bus_shapefile %>%
   ungroup() %>%
   mutate(order = row_number()) %>%
@@ -185,7 +199,8 @@ all_shapefile <- bus_shapefile %>%
       name == "T50" ~ "<b>Tram</b> between <b>City Centre</b> and <b>York Place</b>",
       TRUE ~ paste0("Route <b>", name, "</b> to <b>", destination, "</b>")
     )
-  )
+  ) %>%
+  bind_rows(x7_shapefile)
 
 geojsonio::geojson_write(all_shapefile,
                          file = here::here("data", "tfe_shapefile.geojson"))
